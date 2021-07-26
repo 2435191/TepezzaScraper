@@ -26,10 +26,10 @@ from pynput.keyboard import Controller as KeyboardController
 from pynput.keyboard import HotKey, Key
 from shapely.ops import nearest_points
 
-from hotkey import TepezzaHotkey
+from tepezza.hotkey import TepezzaHotkey
 
 
-class Colors:  # TODO: use actual package or logging
+class _Colors:  # TODO: use actual package or logging
     OK = '\033[94m'
     YELLOW = '\033[93m'
     FAIL = '\033[91m'
@@ -38,13 +38,12 @@ class Colors:  # TODO: use actual package or logging
 
 
 
-class AutomatedTepezzaApi:
+class TepezzaApi:
     """Partially automate data return from tepezza.com.
     This interface allows a user to efficiently scrape data,
     even though the website uses reCaptcha. It does this by
     monitoring network traffic through tshark while the user
-    looks up zipcodes that an iterative algorithm generates (so
-    as to cover the United States efficiently).
+    looks up zipcodes.
 
     :return: A `TepezzaApi` instance. Call the `logger` method for functionality.
     :rtype: TepezzaApi
@@ -95,7 +94,7 @@ class AutomatedTepezzaApi:
         
         while True:
             in_ = input(
-                f"Is Chrome loaded? Ready to begin? Press {Colors.YELLOW}(y){Colors.ENDC}. ")
+                f"Is Chrome loaded? Ready to begin? Press {_Colors.YELLOW}(y){_Colors.ENDC}. ")
             if in_ == "y":
                 break
 
@@ -109,7 +108,7 @@ class AutomatedTepezzaApi:
         while self.network_subp.stderr.readline() == '':
             pass
         
-        self.startup_logger.info(f"{Colors.OK}Initialization complete; proceed to Tepezza.{Colors.ENDC}")
+        self.startup_logger.info(f"{_Colors.OK}Initialization complete; proceed to Tepezza.{_Colors.ENDC}")
         
 
     def _load_chrome(self, logger: logging.Logger) -> None:
@@ -129,7 +128,7 @@ class AutomatedTepezzaApi:
              f"--user-data-dir={self.CHROME_PROFILE}"],
             stdout=subprocess.DEVNULL)
         logger.info(
-            f"New Chrome profile launched; {Colors.FAIL}Do not proceed to Tepezza{Colors.ENDC}.")
+            f"New Chrome profile launched; {_Colors.FAIL}Do not proceed to Tepezza{_Colors.ENDC}.")
 
     def __enter__(self):
         return self
@@ -164,7 +163,7 @@ class AutomatedTepezzaApi:
                 except PermissionError as e:
                     self.exit_logger.warning(e, exc_info=True)
 
-        self.exit_logger.info(f"{Colors.OK}Cleanup complete.{Colors.ENDC}")
+        self.exit_logger.info(f"{_Colors.OK}Cleanup complete.{_Colors.ENDC}")
 
     def _watch_network(self, logger: logging.Logger) -> 'JSON':
         counter = 0
@@ -254,7 +253,7 @@ class AutomatedTepezzaApi:
             target_zip = self.zips.iloc[idx]
             clipboard.copy(target_zip)
 
-            self.logger.info(f"{Colors.YELLOW}Target zip: {target_zip}{Colors.ENDC}")
+            self.logger.info(f"{_Colors.YELLOW}Target zip: {target_zip}{_Colors.ENDC}")
             self.logger.info("Optionally use cmd e; otherwise manually paste/enter/delete (easier on captcha).")
             
             self.thk.zipcode = target_zip
@@ -304,7 +303,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
     try:
-        with AutomatedTepezzaApi() as api:
+        with TepezzaApi() as api:
             api.startup()
             api.get_data(5, 'data/tepezza_raw.csv', True, '05853')
 
