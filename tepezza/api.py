@@ -1,30 +1,17 @@
+import configparser
 import copy
 import json
 import logging
 import os
-import random
-import configparser
 import re
 import shlex
 import shutil
 import subprocess
-import sys
-import threading
-import time
-from math import sqrt
 from pathlib import Path
-from random import randint
-from statistics import median
-from typing import Callable, Iterable, List, Optional, Union, Dict
+from typing import Dict, Optional
 
 import clipboard
-import dpkt
-import geopandas as gpd
 import pandas
-from matplotlib import pyplot as plt
-from pynput.keyboard import Controller as KeyboardController
-from pynput.keyboard import HotKey, Key
-from shapely.ops import nearest_points
 
 from tepezza.hotkey import TepezzaHotkey
 

@@ -1,8 +1,6 @@
 from pynput.keyboard import Key, HotKey, Controller, Listener
-from typing import Union, Optional
+from typing import Union
 import logging
-import threading
-import clipboard
 import time
 import random
 
