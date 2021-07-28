@@ -1,7 +1,7 @@
 import logging
 from sys import platform
 import os
-from typing import Any, Optional
+from typing import Any, Callable
 from tepezza import TepezzaApi
 
 assert platform == 'darwin', 'Cannot be called as module on non-MacOS systems'
