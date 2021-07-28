@@ -9,6 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from typing import Dict, Optional
+
 import clipboard
 import pandas
 
@@ -16,13 +17,13 @@ from tepezza.hotkey import TepezzaHotkey
 
 _PACKAGE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+
 class _Colors:  # TODO: use actual package or logging
     OK = '\033[94m'
     YELLOW = '\033[93m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     UNDERLINE = '\033[4m'
-
 
 
 class TepezzaApi:
@@ -44,48 +45,45 @@ class TepezzaApi:
         'CHROME_SSL_LOG',
         'JSON_LOG'
     ]
-    
+
     _RE_JSON_RAW = re.compile('"json_raw": "([a-f0-9]+)"')
 
     # TODO: add disable hook to hotkey
-    def __init__(self, config_dict: Dict[str, str]={}):
+    def __init__(self, config_dict: Dict[str, str] = {}):
         """Constructor.
 
         :param config: Configuration options, must be dict of cls._SEARCH_FOR_KEYS, defaults to {}
         :type config: Dict[str, str], optional
         """
 
-        
-        path_to_config = os.path.join(_PACKAGE_DIR, 'data', 'default_config.ini')
+        path_to_config = os.path.join(
+            _PACKAGE_DIR, 'data', 'default_config.ini')
 
         config = configparser.ConfigParser()
         config.read(path_to_config)
-        
+
         config['PATHS'].update(config_dict)
-        
+
         for k in self._SEARCH_FOR_KEYS:
             v = config['PATHS'][k]
             abs_path = os.path.join(_PACKAGE_DIR, v)
             setattr(self, k, abs_path)
-            
 
         self._TSHARK_CMD = f'{self.TSHARK} -l -x -i en0 -o ssl.keylog_file:{self.CHROME_SSL_LOG} -Y json -T ek'
-        
+
         self.zips = pandas.read_csv(self.ZIPCODES, dtype='str')['ZIP_CODE']
 
         self._thk = TepezzaHotkey()
-        
-        self.__exit__()
 
-    
+        self.__exit__()
 
     def startup(self) -> None:
         """Start the Chrome and tshark subprocesses.
         """
-        
+
         self.startup_logger = logging.getLogger("startup")
         self._load_chrome(self.startup_logger)
-        
+
         while True:
             in_ = input(
                 f"Is Chrome loaded? Ready to begin? Press {_Colors.YELLOW}(y){_Colors.ENDC}. ")
@@ -97,13 +95,12 @@ class TepezzaApi:
         os.set_blocking(self.network_subp.stdout.fileno(), False)
         os.set_blocking(self.network_subp.stderr.fileno(), False)
 
-        
         # proceeding too quickly will break things. Added a busy wait from self.network_subp.stderr to fix this
         while self.network_subp.stderr.readline() == '':
             pass
-        
-        self.startup_logger.info(f"{_Colors.OK}Initialization complete; proceed to Tepezza.{_Colors.ENDC}")
-        
+
+        self.startup_logger.info(
+            f"{_Colors.OK}Initialization complete; proceed to Tepezza.{_Colors.ENDC}")
 
     def _load_chrome(self, logger: logging.Logger) -> None:
         """Open new Chrome window in a subprocess,
@@ -173,7 +170,7 @@ class TepezzaApi:
 
             except (json.JSONDecodeError, json.decoder.JSONDecodeError) as e:  # overflowed
                 logger.debug(e, exc_info=True)
-                
+
                 s += in_
                 try:
                     pkt = json.loads(s)
@@ -188,7 +185,7 @@ class TepezzaApi:
                 assert json_raw, "json_raw"
 
                 d = json.loads(bytearray.fromhex(json_raw).decode('utf-8'))
-                
+
                 assert d['success'], 'success'
                 assert 'data' in d, 'data'
 
@@ -197,17 +194,16 @@ class TepezzaApi:
                     return []
 
                 assert isinstance(d['data'], list), 'data not list'
-                assert all( ('PhysicianAttributes' in i for i in d['data']) ), 'not doctor data'
-                
-                
+                assert all(
+                    ('PhysicianAttributes' in i for i in d['data'])), 'not doctor data'
+
                 for i in d['data']:
                     i.pop('GeoLocation')
                 return d['data']
             except (KeyError, IndexError, AssertionError, TypeError) as e:
-                #with open(f'error_{counter}.json', 'wb+') as f:
-                    #f.write(in_)
+                # with open(f'error_{counter}.json', 'wb+') as f:
+                # f.write(in_)
                 logger.debug(e, exc_info=True)
-                
 
     def get_data(self, every: int, filepath: str, write_out: bool = True, start_from: Optional[str] = None) -> pandas.DataFrame:
         """Get doctor data from Tepezza.
@@ -230,29 +226,29 @@ class TepezzaApi:
             idx = 0
         else:
             df = pandas.read_csv(filepath, dtype='str', index_col=0)
-            assert df['ZIPCODE'].isin([start_from]).any(), 'must have start zipcode already in .csv file'
-            prev = None # TODO: make prev = previous dataframe relevant bits for corner case error checking
-            idx  = self.zips[self.zips == start_from].index.min()
-        
-        
+            assert df['ZIPCODE'].isin([start_from]).any(
+            ), 'must have start zipcode already in .csv file'
+            prev = None  # TODO: make prev = previous dataframe relevant bits for corner case error checking
+            idx = self.zips[self.zips == start_from].index.min()
 
         self.logger = logging.getLogger("get data")
         self.watch_network_logger = logging.getLogger("watch network")
 
         self._thk.start()
 
-        
         while idx < len(self.zips):
 
             target_zip = self.zips.iloc[idx]
             clipboard.copy(target_zip)
 
-            self.logger.info(f"{_Colors.YELLOW}Target zip: {target_zip}{_Colors.ENDC}")
-            self.logger.info("Optionally use cmd e; otherwise manually paste/enter/delete (easier on captcha).")
-            
+            self.logger.info(
+                f"{_Colors.YELLOW}Target zip: {target_zip}{_Colors.ENDC}")
+            self.logger.info(
+                "Optionally use cmd e; otherwise manually paste/enter/delete (easier on captcha).")
+
             self._thk.zipcode = target_zip
             self._thk.enabled = True
-            
+
             res = self._watch_network(self.watch_network_logger)
             self._thk.enabled = False
 
@@ -266,7 +262,8 @@ class TepezzaApi:
                 if write_out:
                     df.to_csv(filepath)
 
-                self.logger.warning(f"Data match previous. Returning to idx = {idx}.")
+                self.logger.warning(
+                    f"Data match previous. Returning to idx = {idx}.")
                 continue
 
             prev = copy.deepcopy(res)
@@ -278,19 +275,16 @@ class TepezzaApi:
 
             self.logger.debug(res)
 
-            pct_done = round( (idx + every) / len(self.zips) * 100, 3)
-            self.logger.info(f"Done with {idx + every} / {len(self.zips)} ({pct_done}%)")
+            pct_done = round((idx + every) / len(self.zips) * 100, 3)
+            self.logger.info(
+                f"Done with {idx + every} / {len(self.zips)} ({pct_done}%)")
             df = df.append(res, ignore_index=True)
             if write_out:
                 df.to_csv(filepath)
 
             idx += every
-            
+
         return df
-
-
-
-    
 
 
 if __name__ == '__main__':

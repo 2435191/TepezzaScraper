@@ -26,5 +26,9 @@ setup(
     include_package_data=True,
     package_data = {
         "tepezza": ["data/*"]
-    }
+    },
+    install_requires = [
+        'clipboard',
+        'pandas'
+    ]
 )
