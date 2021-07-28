@@ -1,3 +1,2 @@
-__version__ = '0.0.3'
-
+from .__version__ import __version__
 from tepezza.api import TepezzaApi

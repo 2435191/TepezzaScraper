@@ -9,12 +9,12 @@ import shutil
 import subprocess
 from pathlib import Path
 from typing import Dict, Optional
-
 import clipboard
 import pandas
 
 from tepezza.hotkey import TepezzaHotkey
 
+_PACKAGE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 class _Colors:  # TODO: use actual package or logging
     OK = '\033[94m'
@@ -36,7 +36,7 @@ class TepezzaApi:
     :rtype: TepezzaApi
     """
 
-    SEARCH_FOR_KEYS = [
+    _SEARCH_FOR_KEYS = [
         'TSHARK',
         'CHROME',
         'ZIPCODES',
@@ -45,28 +45,35 @@ class TepezzaApi:
         'JSON_LOG'
     ]
     
-    RE_JSON_RAW = re.compile('"json_raw": "([a-f0-9]+)"')
+    _RE_JSON_RAW = re.compile('"json_raw": "([a-f0-9]+)"')
 
     # TODO: add disable hook to hotkey
     def __init__(self, config_dict: Dict[str, str]={}):
         """Constructor.
 
-        :param config: Configuration options, must be dict of cls.SEARCH_FOR_KEYS, defaults to {}
+        :param config: Configuration options, must be dict of cls._SEARCH_FOR_KEYS, defaults to {}
         :type config: Dict[str, str], optional
         """
+
+        
+        path_to_config = os.path.join(_PACKAGE_DIR, 'data', 'default_config.ini')
+
         config = configparser.ConfigParser()
-        config.read('DEFAULT_CONF.ini')
+        config.read(path_to_config)
+        
         config['PATHS'].update(config_dict)
         
-        for k in self.SEARCH_FOR_KEYS:
-            setattr(self, k, config['PATHS'][k])
+        for k in self._SEARCH_FOR_KEYS:
+            v = config['PATHS'][k]
+            abs_path = os.path.join(_PACKAGE_DIR, v)
+            setattr(self, k, abs_path)
             
 
-        self.TSHARK_CMD = f'{self.TSHARK} -l -x -i en0 -o ssl.keylog_file:{self.CHROME_SSL_LOG} -Y json -T ek'
+        self._TSHARK_CMD = f'{self.TSHARK} -l -x -i en0 -o ssl.keylog_file:{self.CHROME_SSL_LOG} -Y json -T ek'
         
         self.zips = pandas.read_csv(self.ZIPCODES, dtype='str')['ZIP_CODE']
 
-        self.thk = TepezzaHotkey()
+        self._thk = TepezzaHotkey()
         
         self.__exit__()
 
@@ -86,7 +93,7 @@ class TepezzaApi:
                 break
 
         self.network_subp = subprocess.Popen(
-            shlex.split(self.TSHARK_CMD), stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True)
+            shlex.split(self._TSHARK_CMD), stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True)
         os.set_blocking(self.network_subp.stdout.fileno(), False)
         os.set_blocking(self.network_subp.stderr.fileno(), False)
 
@@ -174,7 +181,7 @@ class TepezzaApi:
                     continue
             s = b''
             try:
-                match_obj = self.RE_JSON_RAW.search(json.dumps(pkt))
+                match_obj = self._RE_JSON_RAW.search(json.dumps(pkt))
                 assert match_obj, "match_obj"
 
                 json_raw = match_obj.group(1)
@@ -232,7 +239,7 @@ class TepezzaApi:
         self.logger = logging.getLogger("get data")
         self.watch_network_logger = logging.getLogger("watch network")
 
-        self.thk.start()
+        self._thk.start()
 
         
         while idx < len(self.zips):
@@ -243,11 +250,11 @@ class TepezzaApi:
             self.logger.info(f"{_Colors.YELLOW}Target zip: {target_zip}{_Colors.ENDC}")
             self.logger.info("Optionally use cmd e; otherwise manually paste/enter/delete (easier on captcha).")
             
-            self.thk.zipcode = target_zip
-            self.thk.enabled = True
+            self._thk.zipcode = target_zip
+            self._thk.enabled = True
             
             res = self._watch_network(self.watch_network_logger)
-            self.thk.enabled = False
+            self._thk.enabled = False
 
             if prev == res and prev != []:
                 # try again
