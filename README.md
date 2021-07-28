@@ -12,4 +12,4 @@ A user enters zip codes and the program uses tshark to monitor the JSON sent bac
 * Python 3.8+
 
 ## Configuration
-See [DEFAULT_CONF.ini](DEFAULT_CONF.ini) for the default; otherwise pass custom args to the constructor of `TepezzaApi`.
+See [default_config.ini](tepezza/data/default_config.ini) for the default; otherwise pass custom args to the constructor of `TepezzaApi`.
