@@ -1,7 +1,7 @@
 import logging
 from sys import platform
 import os
-from typing import Any, Optional, Callable
+from typing import Any, Optional
 from tepezza import TepezzaApi
 
 assert platform == 'darwin', 'Cannot be called as module on non-MacOS systems'
@@ -15,17 +15,6 @@ def input_with_default(s: str, default: Any, conversion_func: Callable[[str], An
     if res == '':
         res = default
     return conversion_func(res)
-
-
-"""default_path = os.path.expanduser("~/Desktop")
-data_dir = input(f"Where would you like data to be saved? Type a path or press Enter for default {default_path}. ")
-if data_dir == '':
-    data_dir = default_path
-
-default_how_many = 5
-how_many = input(f"Enter sample rate (default {default_how_many}).")
-if how_many == ''
-"""
 
 every = input_with_default("Enter sample rate or press Enter for default {DEFAULT}. ", '5', int)
 filepath = input_with_default(
